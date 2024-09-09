@@ -12,6 +12,26 @@ public class ExtensionTests
         public bool IsEven { get; set; }
     }
 
+    [TestMethod]
+    public void SelectParallelAsync_MaxParallel()
+    {
+        Random rnd = new Random();
+        var count = 20;
+        var numbers = Enumerable.Range(0, count);
+
+        Stopwatch sw = new Stopwatch();
+        sw.Start();
+
+        foreach (var result in numbers
+            .SelectParallelAsync(selectAction, int.MaxValue)
+            .Where(item => item.IsEven))
+        {
+            Assert.AreEqual(true, result.IsEven);
+        }
+        sw.Stop();
+        Assert.AreEqual(1, sw.Elapsed.Seconds);
+    }
+
 
     [TestMethod]
     public void SelectParallelAsync_Enumerable()

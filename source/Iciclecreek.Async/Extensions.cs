@@ -7,19 +7,21 @@ public static class Extensions
     public static IEnumerable<TResult> SelectParallelAsync<TSource, TResult>(this IEnumerable<TSource> source, Func<TSource, int, Task<TResult>> selector, int maxParallel = int.MaxValue)
     {
         maxParallel = GetMaxParallel(source, maxParallel);
-        SemaphoreSlim semaphore = new SemaphoreSlim(maxParallel);
+        SemaphoreSlim? semaphore = null;
+        if (maxParallel > 0 && maxParallel < int.MaxValue)
+            semaphore = new SemaphoreSlim(maxParallel);
         var tasks = new List<Task<TResult>>();
         int index = -1;
         foreach (var item in source)
         {
             index = index + 1;
-            tasks.Add(semaphore.WaitAsync()
+            tasks.Add((semaphore?.WaitAsync() ?? Task.CompletedTask)
                 .ContinueWith(t =>
                 {
                     return selector(item, index)
                         .ContinueWith(t =>
                         {
-                            semaphore.Release();
+                            semaphore?.Release();
                             return t.Result;
                         });
                 }).Unwrap());
@@ -31,19 +33,22 @@ public static class Extensions
     public static IEnumerable<TSource> WhereParallelAsync<TSource>(this IEnumerable<TSource> source, Func<TSource, int, Task<bool>> selector, int maxParallel = int.MaxValue)
     {
         maxParallel = GetMaxParallel(source, maxParallel);
-        SemaphoreSlim semaphore = new SemaphoreSlim(maxParallel);
+        SemaphoreSlim? semaphore = null;
+        if (maxParallel > 0 && maxParallel<int.MaxValue)
+            semaphore = new SemaphoreSlim(maxParallel);
+
         var tasks = new List<Task<WhereResult<TSource>>>();
         int index = -1;
         foreach (var item in source)
         {
             index = index + 1;
-            tasks.Add(semaphore.WaitAsync()
+            tasks.Add((semaphore?.WaitAsync() ?? Task.CompletedTask)
                 .ContinueWith(t =>
                 {
                     return selector(item, index)
                         .ContinueWith(t =>
                         {
-                            semaphore.Release();
+                            semaphore?.Release();
                             return new WhereResult<TSource>() { Item = item, Result = t.Result };
                         });
                 }).Unwrap());
@@ -75,7 +80,7 @@ public static class Extensions
     {
         public bool Result { get; set; }
 
-        public T Item { get; set; }
+        public T? Item { get; set; }
     }
 
 }
