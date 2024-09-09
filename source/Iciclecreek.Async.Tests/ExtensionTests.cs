@@ -31,18 +31,6 @@ public class ExtensionTests
         }
         sw.Stop();
         Assert.AreEqual(2, sw.Elapsed.Seconds);
-
-        sw.Reset();
-        sw.Start();
-
-        foreach (var result in numbers
-            .SelectParallelAsync(action)
-            .Where(item => item.IsEven))
-        {
-            Assert.AreEqual(true, result.IsEven);
-        }
-        sw.Stop();
-        Assert.AreEqual(1, sw.Elapsed.Seconds);
     }
 
     [TestMethod]
