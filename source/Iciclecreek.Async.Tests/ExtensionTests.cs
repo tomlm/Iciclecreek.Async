@@ -24,7 +24,7 @@ public class ExtensionTests
         sw.Start();
 
         foreach (var result in numbers
-            .SelectParallelAsync(action, 10)
+            .SelectParallelAsync(selectAction, 10)
             .Where(item => item.IsEven))
         {
             Assert.AreEqual(true, result.IsEven);
@@ -46,7 +46,7 @@ public class ExtensionTests
         foreach (var result in numbers
             .AsParallel()
             .WithDegreeOfParallelism(10)
-            .SelectParallelAsync(action)
+            .SelectParallelAsync(selectAction)
             .Where(item => item.IsEven))
         {
             Assert.AreEqual(true, result.IsEven);
@@ -60,7 +60,62 @@ public class ExtensionTests
 
         foreach (var result in numbers
             .AsParallel()
-            .SelectParallelAsync(action, 10)
+            .SelectParallelAsync(selectAction, 10)
+            .Where(item => item.IsEven))
+        {
+            Assert.AreEqual(true, result.IsEven);
+        }
+
+        sw.Stop();
+        Assert.AreEqual(2, sw.Elapsed.Seconds);
+    }
+
+    [TestMethod]
+    public void WhereParallelAsync_Enumerable()
+    {
+        Random rnd = new Random();
+        var count = 20;
+        var numbers = Enumerable.Range(0, count);
+
+        Stopwatch sw = new Stopwatch();
+        sw.Start();
+
+        foreach (var result in numbers
+            .WhereParallelAsync(whereAction, 10))
+        {
+            Assert.IsTrue(result % 2 == 0);
+        }
+        sw.Stop();
+        Assert.AreEqual(2, sw.Elapsed.Seconds);
+    }
+
+    [TestMethod]
+    public void WhereParallelAsync_Parallel()
+    {
+        Random rnd = new Random();
+        var count = 20;
+        var numbers = Enumerable.Range(0, count);
+
+        Stopwatch sw = new Stopwatch();
+        sw.Start();
+
+        foreach (var result in numbers
+            .AsParallel()
+            .WithDegreeOfParallelism(10)
+            .WhereParallelAsync(whereAction, 10))
+        {
+            Assert.IsTrue(result % 2 == 0);
+        }
+
+        sw.Stop();
+        Assert.AreEqual(2, sw.Elapsed.Seconds);
+
+        sw.Reset();
+        sw.Start();
+
+        foreach (var result in numbers
+            .AsParallel()
+            .SelectParallelAsync(selectAction, 10)
             .Where(item => item.IsEven))
         {
             Assert.AreEqual(true, result.IsEven);
@@ -81,7 +136,7 @@ public class ExtensionTests
         sw.Start();
 
         foreach (var result in numbers
-            .Select(action)
+            .Select(selectAction)
             .WaitAll()
             .Where(item => item.IsEven))
         {
@@ -91,7 +146,7 @@ public class ExtensionTests
         Assert.IsTrue(sw.Elapsed.Seconds <= 1);
     }
 
-    private static async Task<Item> action(int item, int pos)
+    private static async Task<Item> selectAction(int item, int pos)
     {
         await Task.Delay(1000);
         return new Item
@@ -101,5 +156,10 @@ public class ExtensionTests
         };
     }
 
+    private static async Task<bool> whereAction(int item, int pos)
+    {
+        await Task.Delay(1000);
+        return item % 2 == 0;
+    }
 
 }

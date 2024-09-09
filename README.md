@@ -30,6 +30,35 @@ You can use it with a ParallelQuery
         .ToList();
 ```
 
+# WhereParallelAsync() 
+This allows you to run an async Where() task which runs each task in parallel, with max parallelism.
+
+You can use it with a normal enumerable:
+```csharp
+    // using an enumerable, will max 10 tasks at a time concurrently
+    var results = enumerable
+        .WhereParallelAsync(async (item, index) =>
+        {
+            await ...;
+            return true/false;
+        }, maxParallel: 10)
+        .ToList();
+```
+
+You can use it with a ParallelQuery
+```csharp
+    // using an enumerable, will max 10 tasks at a time concurrently
+    var results = enumerable
+        .AsParallel()
+        .WithDegreeOfParallelism(10)
+        .WhereParallelAsync(async (item, index) =>
+        {
+            await ...;
+            return true/false;
+        })
+        .ToList();
+```
+
 ## WaitAll()
 WaitAll() will await all items in an enumerable of Task<> and return the result of the tasks.
 
