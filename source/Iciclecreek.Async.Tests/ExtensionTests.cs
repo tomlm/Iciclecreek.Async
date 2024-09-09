@@ -82,7 +82,7 @@ public class ExtensionTests
 
         foreach (var result in numbers
             .Select(action)
-            .WaitAll()
+            .WaitAll()nit test
             .Where(item => item.IsEven))
         {
             Assert.AreEqual(true, result.IsEven);
@@ -93,7 +93,7 @@ public class ExtensionTests
 
     private static async Task<Item> action(int item, int pos)
     {
-        await Task.Delay(1500);
+        await Task.Delay(1000);
         return new Item
         {
             Value = item,
