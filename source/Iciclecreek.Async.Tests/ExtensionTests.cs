@@ -82,7 +82,7 @@ public class ExtensionTests
 
         foreach (var result in numbers
             .Select(action)
-            .WaitAll()nit test
+            .WaitAll()
             .Where(item => item.IsEven))
         {
             Assert.AreEqual(true, result.IsEven);
