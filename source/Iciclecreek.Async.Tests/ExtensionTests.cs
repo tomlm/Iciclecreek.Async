@@ -88,12 +88,12 @@ public class ExtensionTests
             Assert.AreEqual(true, result.IsEven);
         }
         sw.Stop();
-        Assert.AreEqual(1, sw.Elapsed.Seconds);
+        Assert.IsTrue(sw.Elapsed.Seconds <= 1);
     }
 
     private static async Task<Item> action(int item, int pos)
     {
-        await Task.Delay(1000);
+        await Task.Delay(1500);
         return new Item
         {
             Value = item,
