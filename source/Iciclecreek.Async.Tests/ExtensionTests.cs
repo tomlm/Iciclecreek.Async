@@ -10,6 +10,7 @@ public class ExtensionTests
     {
         public int Value { get; set; }
         public bool IsEven { get; set; }
+        public int Index { get; set; }
     }
 
     [TestMethod]
@@ -22,13 +23,17 @@ public class ExtensionTests
         Stopwatch sw = new Stopwatch();
         sw.Start();
 
+        HashSet<int> ints = new HashSet<int>();
         foreach (var result in numbers
             .SelectParallelAsync(selectAction, int.MaxValue)
             .Where(item => item.IsEven))
         {
+            ints.Add(result.Index);
             Assert.AreEqual(true, result.IsEven);
         }
         sw.Stop();
+        for (int i = 0; i < count; i+= 2)
+            Assert.IsTrue(ints.Contains(i));
         Assert.AreEqual(1, sw.Elapsed.Seconds);
     }
 
@@ -97,6 +102,7 @@ public class ExtensionTests
         var count = 20;
         var numbers = Enumerable.Range(0, count);
 
+        HashSet<int> ints = new HashSet<int>();
         Stopwatch sw = new Stopwatch();
         sw.Start();
 
@@ -172,7 +178,8 @@ public class ExtensionTests
         return new Item
         {
             Value = item,
-            IsEven = item % 2 == 0
+            IsEven = item % 2 == 0,
+            Index = pos
         };
     }
 

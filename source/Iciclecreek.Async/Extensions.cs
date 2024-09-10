@@ -11,14 +11,15 @@ public static class Extensions
         if (maxParallel > 0 && maxParallel < int.MaxValue)
             semaphore = new SemaphoreSlim(maxParallel);
         var tasks = new List<Task<TResult>>();
-        int index = -1;
+        int index = 0;
         foreach (var item in source)
         {
-            index = index + 1;
+            var pos = index++;
+
             tasks.Add((semaphore?.WaitAsync() ?? Task.CompletedTask)
                 .ContinueWith(t =>
                 {
-                    return selector(item, index)
+                    return selector(item, pos)
                         .ContinueWith(t =>
                         {
                             semaphore?.Release();
@@ -38,14 +39,15 @@ public static class Extensions
             semaphore = new SemaphoreSlim(maxParallel);
 
         var tasks = new List<Task<WhereResult<TSource>>>();
-        int index = -1;
+        int index = 0;
         foreach (var item in source)
         {
-            index = index + 1;
+            var pos = index++;
+
             tasks.Add((semaphore?.WaitAsync() ?? Task.CompletedTask)
                 .ContinueWith(t =>
                 {
-                    return selector(item, index)
+                    return selector(item, pos)
                         .ContinueWith(t =>
                         {
                             semaphore?.Release();
