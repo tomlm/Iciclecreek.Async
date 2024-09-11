@@ -1,4 +1,5 @@
 ﻿using System.Reflection;
+using System.Threading.Tasks;
 
 namespace Iciclecreek.Async;
 
@@ -7,25 +8,25 @@ public static class Extensions
     public static IEnumerable<TResult> SelectParallelAsync<TSource, TResult>(this IEnumerable<TSource> source, Func<TSource, int, Task<TResult>> selector, int maxParallel = int.MaxValue)
     {
         maxParallel = GetMaxParallel(source, maxParallel);
-        SemaphoreSlim? semaphore = null;
-        if (maxParallel > 0 && maxParallel < int.MaxValue)
-            semaphore = new SemaphoreSlim(maxParallel);
+        SemaphoreSlim semaphore = new SemaphoreSlim(maxParallel);
         var tasks = new List<Task<TResult>>();
         int index = 0;
         foreach (var item in source)
         {
             var pos = index++;
 
-            tasks.Add((semaphore?.WaitAsync() ?? Task.CompletedTask)
-                .ContinueWith(t =>
+            tasks.Add(Task.Run(async () =>
+            {
+                try
                 {
-                    return selector(item, pos)
-                        .ContinueWith(t =>
-                        {
-                            semaphore?.Release();
-                            return t.Result;
-                        });
-                }).Unwrap());
+                    await semaphore.WaitAsync();
+                    return await selector(item, pos);
+                }
+                finally
+                {
+                    semaphore.Release();
+                }
+            }));
         }
         Task.WaitAll(tasks.ToArray());
         return tasks.Select(t => t.Result);
@@ -34,9 +35,7 @@ public static class Extensions
     public static IEnumerable<TSource> WhereParallelAsync<TSource>(this IEnumerable<TSource> source, Func<TSource, int, Task<bool>> selector, int maxParallel = int.MaxValue)
     {
         maxParallel = GetMaxParallel(source, maxParallel);
-        SemaphoreSlim? semaphore = null;
-        if (maxParallel > 0 && maxParallel<int.MaxValue)
-            semaphore = new SemaphoreSlim(maxParallel);
+        SemaphoreSlim semaphore = new SemaphoreSlim(maxParallel);
 
         var tasks = new List<Task<WhereResult<TSource>>>();
         int index = 0;
@@ -44,19 +43,22 @@ public static class Extensions
         {
             var pos = index++;
 
-            tasks.Add((semaphore?.WaitAsync() ?? Task.CompletedTask)
-                .ContinueWith(t =>
+            tasks.Add(Task.Run(async () =>
                 {
-                    return selector(item, pos)
-                        .ContinueWith(t =>
-                        {
-                            semaphore?.Release();
-                            return new WhereResult<TSource>() { Item = item, Result = t.Result };
-                        });
-                }).Unwrap());
+                    try
+                    {
+                        await semaphore.WaitAsync();
+                        var result = await selector(item, pos);
+                        return new WhereResult<TSource>() { Item = item, Result = result };
+                    }
+                    finally
+                    {
+                        semaphore.Release();
+                    }
+                }));
         }
         Task.WaitAll(tasks.ToArray());
-        return tasks.Where(t => t.Result.Result).Select(t => t.Result.Item);
+        return tasks.Select(t => t.Result).Where(task => task.Result).Select(task => task.Item!);
     }
 
     public static IEnumerable<TSource> WaitAll<TSource>(this IEnumerable<Task<TSource>> source)
