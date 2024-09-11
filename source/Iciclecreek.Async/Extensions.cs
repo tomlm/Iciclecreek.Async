@@ -5,7 +5,7 @@ namespace Iciclecreek.Async;
 
 public static class Extensions
 {
-    public static IEnumerable<TResult> SelectParallelAsync<TSource, TResult>(this IEnumerable<TSource> source, Func<TSource, int, Task<TResult>> selector, int maxParallel = int.MaxValue)
+    public static IList<TResult> SelectParallelAsync<TSource, TResult>(this IEnumerable<TSource> source, Func<TSource, int, Task<TResult>> selector, int maxParallel = int.MaxValue)
     {
         maxParallel = GetMaxParallel(source, maxParallel);
         SemaphoreSlim semaphore = new SemaphoreSlim(maxParallel);
@@ -29,10 +29,10 @@ public static class Extensions
             }));
         }
         Task.WaitAll(tasks.ToArray());
-        return tasks.Select(t => t.Result);
+        return tasks.Select(t => t.Result).ToList();
     }
 
-    public static IEnumerable<TSource> WhereParallelAsync<TSource>(this IEnumerable<TSource> source, Func<TSource, int, Task<bool>> selector, int maxParallel = int.MaxValue)
+    public static IList<TSource> WhereParallelAsync<TSource>(this IEnumerable<TSource> source, Func<TSource, int, Task<bool>> selector, int maxParallel = int.MaxValue)
     {
         maxParallel = GetMaxParallel(source, maxParallel);
         SemaphoreSlim semaphore = new SemaphoreSlim(maxParallel);
@@ -58,14 +58,16 @@ public static class Extensions
                 }));
         }
         Task.WaitAll(tasks.ToArray());
-        return tasks.Select(t => t.Result).Where(task => task.Result).Select(task => task.Item!);
+        return tasks
+            .Where(task => task.Result.Result)
+            .Select(task => task.Result.Item!).ToList();
     }
 
-    public static IEnumerable<TSource> WaitAll<TSource>(this IEnumerable<Task<TSource>> source)
+    public static IList<TSource> WaitAll<TSource>(this IEnumerable<Task<TSource>> source)
     {
         var list = source.ToArray();
         Task.WaitAll(list);
-        return list.Select(t => t.Result);
+        return list.Select(t => t.Result).ToList();
     }
 
     private static int GetMaxParallel<TSource>(IEnumerable<TSource> source, int maxParallel)
