@@ -1,11 +1,10 @@
 ﻿using System.Reflection;
-using System.Threading.Tasks;
 
 namespace Iciclecreek.Async;
 
 public static class Extensions
 {
-    public static IList<TResult> SelectParallelAsync<TSource, TResult>(this IEnumerable<TSource> source, Func<TSource, int, Task<TResult>> selector, int maxParallel = int.MaxValue)
+    public static IList<TResult> SelectParallelAsync<TSource, TResult>(this IEnumerable<TSource> source, Func<TSource, int, CancellationToken, Task<TResult>> selector, int maxParallel = int.MaxValue, CancellationToken cancellationToken = default)
     {
         maxParallel = GetMaxParallel(source, maxParallel);
         SemaphoreSlim semaphore = new SemaphoreSlim(maxParallel);
@@ -19,8 +18,8 @@ public static class Extensions
             {
                 try
                 {
-                    await semaphore.WaitAsync();
-                    return await selector(item, pos);
+                    await semaphore.WaitAsync(cancellationToken);
+                    return await selector(item, pos, cancellationToken);
                 }
                 finally
                 {
@@ -28,11 +27,11 @@ public static class Extensions
                 }
             }));
         }
-        Task.WaitAll(tasks.ToArray());
+        Task.WaitAll(tasks.ToArray(), cancellationToken);
         return tasks.Select(t => t.Result).ToList();
     }
 
-    public static IList<TSource> WhereParallelAsync<TSource>(this IEnumerable<TSource> source, Func<TSource, int, Task<bool>> selector, int maxParallel = int.MaxValue)
+    public static IList<TSource> WhereParallelAsync<TSource>(this IEnumerable<TSource> source, Func<TSource, int, CancellationToken, Task<bool>> selector, int maxParallel = int.MaxValue, CancellationToken cancellationToken = default)
     {
         maxParallel = GetMaxParallel(source, maxParallel);
         SemaphoreSlim semaphore = new SemaphoreSlim(maxParallel);
@@ -47,8 +46,8 @@ public static class Extensions
                 {
                     try
                     {
-                        await semaphore.WaitAsync();
-                        var result = await selector(item, pos);
+                        await semaphore.WaitAsync(cancellationToken);
+                        var result = await selector(item, pos, cancellationToken);
                         return new WhereResult<TSource>() { Item = item, Result = result };
                     }
                     finally
@@ -57,16 +56,16 @@ public static class Extensions
                     }
                 }));
         }
-        Task.WaitAll(tasks.ToArray());
+        Task.WaitAll(tasks.ToArray(), cancellationToken);
         return tasks
             .Where(task => task.Result.Result)
             .Select(task => task.Result.Item!).ToList();
     }
 
-    public static IList<TSource> WaitAll<TSource>(this IEnumerable<Task<TSource>> source)
+    public static IList<TSource> WaitAll<TSource>(this IEnumerable<Task<TSource>> source, CancellationToken cancellationToken = default)
     {
         var list = source.ToArray();
-        Task.WaitAll(list);
+        Task.WaitAll(list, cancellationToken);
         return list.Select(t => t.Result).ToList();
     }
 

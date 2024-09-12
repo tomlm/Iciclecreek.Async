@@ -32,7 +32,7 @@ public class ExtensionTests
             Assert.AreEqual(true, result.IsEven);
         }
         sw.Stop();
-        for (int i = 0; i < count; i+= 2)
+        for (int i = 0; i < count; i += 2)
             Assert.IsTrue(ints.Contains(i));
         Assert.AreEqual(1, sw.Elapsed.Seconds);
     }
@@ -161,8 +161,9 @@ public class ExtensionTests
         Stopwatch sw = new Stopwatch();
         sw.Start();
 
+        int pos = 0;
         foreach (var result in numbers
-            .Select(selectAction)
+            .Select(val => selectAction(val, pos++))
             .WaitAll()
             .Where(item => item.IsEven))
         {
@@ -172,9 +173,9 @@ public class ExtensionTests
         Assert.IsTrue(sw.Elapsed.Seconds <= 1);
     }
 
-    private static async Task<Item> selectAction(int item, int pos)
+    private static async Task<Item> selectAction(int item, int pos, CancellationToken ct = default)
     {
-        await Task.Delay(1000);
+        await Task.Delay(1000, ct);
         return new Item
         {
             Value = item,
@@ -183,9 +184,9 @@ public class ExtensionTests
         };
     }
 
-    private static async Task<bool> whereAction(int item, int pos)
+    private static async Task<bool> whereAction(int item, int pos, CancellationToken ct)
     {
-        await Task.Delay(1000);
+        await Task.Delay(1000, ct);
         return item % 2 == 0;
     }
 
