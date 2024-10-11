@@ -173,6 +173,66 @@ public class ExtensionTests
         Assert.IsTrue(sw.Elapsed.Seconds <= 1);
     }
 
+    [TestMethod]
+    public void ForEachParallelAsync_Enumerable()
+    {
+        Random rnd = new Random();
+        var count = 20;
+        var numbers = Enumerable.Range(0, count);
+
+        Stopwatch sw = new Stopwatch();
+        sw.Start();
+
+        int pos = 0;
+        foreach (var result in numbers.Select(num => new MutableItem() { Value = num })
+                    .ForEachParallelAsync(foreachAction))
+        {
+            Assert.AreEqual(true, (result.Value % 2) == 0);
+        }
+        sw.Stop();
+        Assert.IsTrue(sw.Elapsed.Seconds <= 1);
+    }
+
+    [TestMethod]
+    public void ForEachParallelAsync_Parallel()
+    {
+        Random rnd = new Random();
+        var count = 20;
+        var numbers = Enumerable.Range(0, count);
+
+        Stopwatch sw = new Stopwatch();
+        sw.Start();
+
+        foreach (var result in numbers.Select(num => new MutableItem() { Value = num })
+            .AsParallel()
+            .WithDegreeOfParallelism(10)
+            .ForEachParallelAsync(foreachAction))
+        {
+            Assert.AreEqual(true, (result.Value % 2) == 0);
+        }
+
+        sw.Stop();
+        Assert.AreEqual(2, sw.Elapsed.Seconds);
+
+        sw.Reset();
+        sw.Start();
+
+        foreach (var result in numbers.Select(num => new MutableItem() { Value = num })
+            .AsParallel()
+            .ForEachParallelAsync(foreachAction, 10))
+        {
+            Assert.AreEqual(true, (result.Value % 2) == 0);
+        }
+
+        sw.Stop();
+        Assert.AreEqual(2, sw.Elapsed.Seconds);
+    }
+
+    public class MutableItem
+    {
+        public int Value { get; set; }
+    }
+
     private static async Task<Item> selectAction(int item, int pos, CancellationToken ct = default)
     {
         await Task.Delay(1000, ct);
@@ -188,6 +248,12 @@ public class ExtensionTests
     {
         await Task.Delay(1000, ct);
         return item % 2 == 0;
+    }
+
+    private static async Task foreachAction(MutableItem mutableItem, int pos, CancellationToken ct)
+    {
+        await Task.Delay(1000, ct);
+        mutableItem.Value = mutableItem.Value * 2;
     }
 
 }

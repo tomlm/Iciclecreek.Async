@@ -59,6 +59,18 @@ You can use it with a ParallelQuery
         .ToList();
 ```
 
+## ForEachParallelAsync()
+ForEachParallelAsync() will await all items in an enumerable of Task and return the original objects.
+This is useful to perform parallel actions on an enumerable.
+
+```csharp
+    var results = enumerable
+        .ForEachParallelAsync(async (item) => 
+        {
+            await ...;
+        });
+```
+
 ## WaitAll()
 WaitAll() will await all items in an enumerable of Task<> and return the result of the tasks.
 
