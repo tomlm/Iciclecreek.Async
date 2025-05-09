@@ -57,7 +57,7 @@ namespace Iciclecreek.Async
         /// <param name="maxParallel"></param>
         /// <param name="cancellationToken"></param>
         /// <returns></returns>
-        public static async IAsyncEnumerable<TResult> SelectParallelAsync<TSource, TResult>(this IAsyncEnumerable<TSource> source, Func<TSource, int, CancellationToken, Task<TResult>> selector, int maxParallel = int.MaxValue, CancellationToken cancellationToken = default)
+        public static async IAsyncEnumerable<TResult> SelectParallelAsync<TSource, TResult>(this IAsyncEnumerable<TSource> source, Func<TSource, int, CancellationToken, Task<TResult>> selector, int maxParallel = int.MaxValue, [EnumeratorCancellation] CancellationToken cancellationToken = default)
         {
             SemaphoreSlim semaphore = new SemaphoreSlim(maxParallel);
             var tasks = new List<Task<TResult>>();
@@ -268,7 +268,7 @@ namespace Iciclecreek.Async
         {
             public bool Result { get; set; }
 
-            public T Item { get; set; }
+            public T? Item { get; set; }
         }
 
     }
